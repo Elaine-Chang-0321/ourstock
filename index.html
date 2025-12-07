@@ -164,8 +164,12 @@
           const prices = await response.json();
           console.log('取得股價資料:', prices);
           data.forEach(stock => {
+            // 嘗試比對完整代號與去除市場代碼的代號
+            const cleanCode = stock.code.split('.')[0];
             if (prices[stock.code]) {
               stock.currentPrice = prices[stock.code];
+            } else if (prices[cleanCode]) {
+              stock.currentPrice = prices[cleanCode];
             } else {
               stock.currentPrice = '-';
             }
