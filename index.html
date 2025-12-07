@@ -152,7 +152,10 @@
         const symbols = data.map(stock => stock.code);
         if (symbols.length === 0) return alert('沒有可更新的股票資料');
         try {
-          const response = await fetch('http://localhost:5000/price', {
+          const apiBase = window.location.origin.includes('localhost')
+            ? 'http://127.0.0.1:5000'
+            : '';
+          const response = await fetch(`${apiBase}/price`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ symbols })
