@@ -30,9 +30,18 @@ def price():
     prices = {}
 
     for symbol in symbols:
-        price = get_stock_price(symbol)
-        if price is not None:
-            prices[symbol] = price
+        try:
+            if '.' not in symbol:
+                symbol = f"{symbol}.TW"
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period="1d")
+            if not hist.empty:
+                prices[symbol.split('.')[0]] = round(hist['Close'].iloc[-1], 2)
+            else:
+                prices[symbol.split('.')[0]] = None
+        except Exception as e:
+            print(f"Error fetching {symbol}: {e}")
+            prices[symbol.split('.')[0]] = None
 
     return jsonify(prices)
 
