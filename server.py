@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yfinance as yf
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)  # 允許跨來源請求，方便前端在本地端呼叫 API
 
 def get_stock_price(symbol):
@@ -19,7 +19,8 @@ def get_stock_price(symbol):
 
 @app.route('/')
 def home():
-    return 'Stock Price API is running.'
+    from flask import send_from_directory
+    return send_from_directory('.', 'index.html')
 
 @app.route('/price', methods=['POST'])
 def price():
