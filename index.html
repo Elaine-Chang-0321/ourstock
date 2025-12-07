@@ -152,23 +152,30 @@
         const symbols = data.map(stock => stock.code);
         if (symbols.length === 0) return alert('沒有可更新的股票資料');
         try {
-          const apiBase = window.location.origin.includes('localhost')
-            ? 'http://127.0.0.1:5000'
-            : '';
+          const apiBase = window.location.origin;
           const response = await fetch(`${apiBase}/price`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ symbols })
           });
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
           const prices = await response.json();
+          console.log('取得股價資料:', prices);
           data.forEach(stock => {
-            if (prices[stock.code]) stock.currentPrice = prices[stock.code];
+            if (prices[stock.code]) {
+              stock.currentPrice = prices[stock.code];
+            } else {
+              stock.currentPrice = '-';
+            }
           });
           localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
           loadData();
+          alert('股價更新完成');
         } catch (error) {
           console.error('更新股價失敗:', error);
-          alert('更新股價時發生錯誤');
+          alert('更新股價時發生錯誤，請檢查伺服器是否運作中');
         }
       }
 
