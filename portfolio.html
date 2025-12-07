@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>庫存股市值</title>
+  <title>投資組合</title>
   <style>
     body {
       font-family: "Microsoft JhengHei", sans-serif;
@@ -76,7 +76,7 @@
     <a href="portfolio.html">已實現損益</a>
   </nav>
   <main>
-    <h1>庫存股市值</h1>
+    <h1>投資組合管理</h1>
     <form>
       <input type="text" placeholder="股票代號" required>
       <input type="text" placeholder="股票名稱" required>
@@ -95,8 +95,6 @@
           <th>股數</th>
           <th>價格</th>
           <th>應收付</th>
-          <th>即時股價</th>
-          <th>損益</th>
           <th>操作</th>
         </tr>
       </thead>
@@ -109,66 +107,60 @@
     document.addEventListener('DOMContentLoaded', () => {
       const form = document.querySelector('form');
       const tbody = document.querySelector('tbody');
-      const STORAGE_KEY = 'indexStocks';
+      const STORAGE_KEY = 'portfolioData';
 
+      // 初始化：從 localStorage 載入資料
       const loadData = () => {
         const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         tbody.innerHTML = '';
         data.forEach((stock, index) => addRow(stock, index));
       };
 
+      // 新增表格列
       const addRow = (stock, index) => {
-        const tr = document.createElement('tr');
-        const profit = stock.currentPrice
-          ? ((stock.currentPrice - stock.price) * stock.quantity).toFixed(2)
-          : '-';
-        tr.innerHTML = `
-          <td>${stock.code}</td>
-          <td>${stock.name}</td>
-          <td>${stock.date}</td>
-          <td>${stock.quantity}</td>
-          <td>${stock.price}</td>
-          <td>${stock.receivable ?? 0}</td>
-          <td>${stock.currentPrice ?? '-'}</td>
-          <td>${profit}</td>
-        `;
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = '刪除';
-        deleteButton.classList.add('delete-btn');
-        deleteButton.addEventListener('click', () => {
-          const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-          data.splice(index, 1);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-          loadData();
+       const tr = document.createElement('tr');
+       tr.innerHTML = `
+         <td>${stock.code}</td>
+         <td>${stock.name}</td>
+         <td>${stock.date}</td>
+         <td>${stock.shares}</td>
+         <td>${stock.price}</td>
+       <td>${stock.receivable ?? 0}</td>
+       `;
+      const deleteButton = document.createElement('button');
+       deleteButton.textContent = '刪除';
+       deleteButton.classList.add('delete-btn');
+       deleteButton.addEventListener('click', () => {
+         const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+         data.splice(index, 1);
+         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+         loadData();
+         // updateInventory(); // 已停用，避免影響 index.html
+       });
+       const td = document.createElement('td');
+       td.appendChild(deleteButton);
+       tr.appendChild(td);
+       tbody.appendChild(tr);
+     };
+
+      // 更新庫存資料
+      const updateInventory = () => {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        const inventory = {};
+        data.forEach(stock => {
+          if (!inventory[stock.code]) {
+            inventory[stock.code] = { name: stock.name, quantity: 0, price: stock.price };
+          }
+          inventory[stock.code].quantity += parseInt(stock.shares);
         });
-        const td = document.createElement('td');
-        td.appendChild(deleteButton);
-        tr.appendChild(td);
-        tbody.appendChild(tr);
+        for (const code in inventory) {
+          if (inventory[code].quantity <= 0) delete inventory[code];
+        }
+        console.log("updateInventory() called, current inventory:", inventory);
+        localStorage.setItem('inventory', JSON.stringify(inventory));
       };
 
-      async function updatePrices() {
-        const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        const symbols = data.map(stock => stock.code);
-        if (symbols.length === 0) return alert('沒有可更新的股票資料');
-        try {
-          const response = await fetch('http://localhost:5000/price', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ symbols })
-          });
-          const prices = await response.json();
-          data.forEach(stock => {
-            if (prices[stock.code]) stock.currentPrice = prices[stock.code];
-          });
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-          loadData();
-        } catch (error) {
-          console.error('更新股價失敗:', error);
-          alert('更新股價時發生錯誤');
-        }
-      }
-
+      // 表單提交事件
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const inputs = form.querySelectorAll('input');
@@ -176,24 +168,29 @@
           code: inputs[0].value.trim(),
           name: inputs[1].value.trim(),
           date: inputs[2].value,
-          quantity: parseInt(inputs[3].value),
+          shares: parseInt(inputs[3].value),
           price: parseFloat(inputs[4].value),
           receivable: parseFloat(inputs[5].value) || 0
         };
+
+        // 新增至表格
+        addRow(stock);
+
+        // 儲存至 localStorage
         const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         data.push(stock);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        loadData();
+
+        // 更新庫存
+        // updateInventory(); // 已停用，避免影響 index.html
+
+        // 清空表單
         form.reset();
       });
 
-      const updateButton = document.createElement('button');
-      updateButton.textContent = '更新股價';
-      updateButton.style.marginTop = '15px';
-      updateButton.addEventListener('click', updatePrices);
-      document.querySelector('main').appendChild(updateButton);
-
+      // 初始化載入
       loadData();
+      // updateInventory(); // 已停用，避免影響 index.html
     });
   </script>
 </body>
